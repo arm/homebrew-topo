@@ -1,0 +1,88 @@
+name: Update formula
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for new release
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh release view --repo arm/topo --json tagName -q .tagName)
+          version=${latest#v}
+          current=$(grep '^  version ' Formula/topo.rb | sed 's/.*"\(.*\)"/\1/')
+
+          echo "latest=$version" >> "$GITHUB_OUTPUT"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+
+          if [ "$version" = "$current" ]; then
+            echo "up_to_date=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "up_to_date=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update formula
+        if: steps.check.outputs.up_to_date == 'false'
+        run: |
+          version=${{ steps.check.outputs.latest }}
+          base_url="https://artifacts.tools.arm.com/topo/v${version}"
+
+          declare -A urls=(
+            [darwin_arm64]="${base_url}/macos/topo_darwin_arm64.tar.gz"
+            [darwin_amd64]="${base_url}/macos/topo_darwin_amd64.tar.gz"
+            [linux_arm64]="${base_url}/linux/topo_linux_arm64.tar.gz"
+            [linux_amd64]="${base_url}/linux/topo_linux_amd64.tar.gz"
+          )
+
+          declare -A shas
+          for key in "${!urls[@]}"; do
+            shas[$key]=$(curl -sL "${urls[$key]}" | shasum -a 256 | awk '{print $1}')
+            echo "${key}: ${shas[$key]}"
+          done
+
+          formula="Formula/topo.rb"
+
+          sed -i "s/version \".*\"/version \"${version}\"/" "$formula"
+
+          update_sha() {
+            local old_sha=$1 new_sha=$2
+            sed -i "s/${old_sha}/${new_sha}/" "$formula"
+          }
+
+          # Match shas by position in the formula (order: darwin_arm64, darwin_amd64, linux_arm64, linux_amd64)
+          old_shas=($(grep -oP '(?<=sha256 ")[a-f0-9]{64}' "$formula"))
+          update_sha "${old_shas[0]}" "${shas[darwin_arm64]}"
+          update_sha "${old_shas[1]}" "${shas[darwin_amd64]}"
+          update_sha "${old_shas[2]}" "${shas[linux_arm64]}"
+          update_sha "${old_shas[3]}" "${shas[linux_amd64]}"
+
+      - name: Create pull request
+        if: steps.check.outputs.up_to_date == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=${{ steps.check.outputs.latest }}
+          branch="chore/update-v${version}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add Formula/topo.rb
+          git commit -m "chore: update topo to v${version}"
+          git push -u origin "$branch"
+
+          gh pr create \
+            --title "chore: update topo to v${version}" \
+            --body "Automated update to [v${version}](https://github.com/arm/topo/releases/tag/v${version})."
