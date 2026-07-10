@@ -32,10 +32,12 @@ class Topo < Formula
     if build.head?
       ldflags = %W[
         -s -w
-        -X github.com/arm/topo/internal/version.Version=HEAD
-        -X github.com/arm/topo/internal/version.GitCommit=#{Utils.git_head}
+        -X github.com/arm/topo/cli/internal/version.Version=HEAD
+        -X github.com/arm/topo/cli/internal/version.GitCommit=#{Utils.git_head}
       ]
-      system "go", "build", *std_go_args(ldflags:), "./cmd/topo"
+      cd "cli" do
+        system "go", "build", *std_go_args(ldflags: ldflags)
+      end
     else
       bin.install "topo"
     end
