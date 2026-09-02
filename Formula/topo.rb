@@ -1,7 +1,7 @@
 class Topo < Formula
   desc "Compose, parameterize, and deploy containerized examples for Arm hardware"
   homepage "https://github.com/arm/topo"
-  version "11.0.1"
+  version "12.0.0"
   license "Apache-2.0"
 
   head "https://github.com/arm/topo.git", branch: "main"
@@ -9,20 +9,20 @@ class Topo < Formula
   on_macos do
     if Hardware::CPU.arm?
       url "https://artifacts.tools.arm.com/topo/v#{version}/macos/topo_darwin_arm64.tar.gz"
-      sha256 "659839e56fc0df6f098bc7feb4ea4842eff3c0dbc665145ec57eee26f7f602f2"
+      sha256 "b5fae69c48d2a37da4a7deff1b3dcdd0f53831f6112eb30442e793f2918c163b"
     else
       url "https://artifacts.tools.arm.com/topo/v#{version}/macos/topo_darwin_amd64.tar.gz"
-      sha256 "19788f0ef7796ad8c28e005da148effae6b057dfb18bb9451a323cfc3cc08c09"
+      sha256 "2986a1175aca44cb35653b55bd9087cf70b1743cff42089a661b6e171fb3a1aa"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
       url "https://artifacts.tools.arm.com/topo/v#{version}/linux/topo_linux_arm64.tar.gz"
-      sha256 "d6ed2d6bc5604919b2a42e6c3ac80b81acd91b7b675dd6429928c141ded09980"
+      sha256 "1cb5f3806df3ab5d424f5cf1de51227514bd8e7b6470a5cf8d77ccceb197542a"
     else
       url "https://artifacts.tools.arm.com/topo/v#{version}/linux/topo_linux_amd64.tar.gz"
-      sha256 "57bb5589569237fcb645963f42d302710b5b996b1a55651b9837bbda938133eb"
+      sha256 "263f18bd82e73d7b0de6bfe9778108e523630dde677899fc6a8546bc0d154a2f"
     end
   end
 
